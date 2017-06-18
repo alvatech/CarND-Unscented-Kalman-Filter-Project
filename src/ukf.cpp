@@ -83,12 +83,41 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
-
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
+    if (!is_initialized_) {
+       
+        if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+            /**
+             Convert radar from polar to cartesian coordinates and initialize state.
+             */
+            x_ << meas_package.raw_measurements_[0] * cos(meas_package.raw_measurements_[1]),
+            meas_package.raw_measurements_[0] * sin(meas_package.raw_measurements_[1]),
+            0,
+            0,
+            0;
+        }
+        else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+            x_ << meas_package.raw_measurements_[0],
+            meas_package.raw_measurements_[1],
+            0,
+            0,
+            0;
+        }
+        
+        time_us_ = meas_package.timestamp_;
+        
+        // done initializing, no need to predict or update
+        is_initialized_ = true;
+        return;
+    }
+    
+    // Time delta
+    double dt = (meas_package.timestamp_ - time_us_) / 1000000.0;
+    time_us_ = meas_package.timestamp_;
+    if (meas_package.sensor_type_ == meas_package.LASER && use_laser_) {
+        UpdateLidar(meas_package);
+    } else if (meas_package.sensor_type_ == meas_package.RADAR && use_radar_) {
+        UpdateRadar(meas_package);
+    }
 }
 
 /**
